@@ -7,84 +7,57 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #F5F0E8;
-    --surface: #FDFAF4;
-    --border: #D4C9B0;
-    --text: #1A1410;
-    --muted: #7A6E5F;
-    --accent: #C4401A;
-    --accent-soft: #F5E8E3;
-    --green: #2D6A4F;
-    --green-soft: #E3F0EA;
-    --yellow: #A07800;
-    --yellow-soft: #FAF3DC;
+    --bg: #F5F0E8; --surface: #FDFAF4; --border: #D4C9B0;
+    --text: #1A1410; --muted: #7A6E5F; --accent: #C4401A;
+    --accent-soft: #F5E8E3; --green: #2D6A4F; --green-soft: #E3F0EA;
+    --yellow: #A07800; --yellow-soft: #FAF3DC;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'DM Mono', monospace; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
-
   header { max-width: 900px; margin: 0 auto 2.5rem; display: flex; align-items: baseline; justify-content: space-between; border-bottom: 2px solid var(--text); padding-bottom: 1rem; }
   header h1 { font-family: 'DM Serif Display', serif; font-size: 2.2rem; letter-spacing: -0.02em; }
   header span { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
-
   .container { max-width: 900px; margin: 0 auto; }
-
   .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
   .card { background: var(--surface); border: 1px solid var(--border); padding: 1.2rem 1.4rem; }
   .card-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 0.5rem; }
   .card-value { font-family: 'DM Serif Display', serif; font-size: 2rem; line-height: 1; }
   .card-sub { font-size: 0.7rem; color: var(--muted); margin-top: 0.3rem; }
-
   .form-section { background: var(--surface); border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 2rem; }
   .form-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; margin-bottom: 1.2rem; }
   .form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0.75rem; align-items: end; }
   .field label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
   .field input, .field select { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border); background: var(--bg); font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--text); outline: none; }
   .field input:focus, .field select:focus { border-color: var(--text); }
-
   .btn { padding: 0.65rem 1.2rem; font-family: 'DM Mono', monospace; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; border: none; transition: opacity 0.15s; }
   .btn:hover { opacity: 0.8; }
   .btn-primary { background: var(--text); color: var(--bg); width: 100%; margin-top: 1rem; }
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-
   .tabs { display: flex; margin-bottom: 1rem; border-bottom: 2px solid var(--border); }
   .tab { padding: 0.6rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; border: none; background: none; color: var(--muted); font-family: 'DM Mono', monospace; border-bottom: 2px solid transparent; margin-bottom: -2px; }
   .tab.active { color: var(--text); border-bottom-color: var(--text); }
-
   .search-bar { margin-bottom: 1.5rem; }
   .search-bar input { width: 100%; padding: 0.65rem 1rem; border: 1px solid var(--border); background: var(--surface); font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--text); outline: none; }
-
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
   th { text-align: left; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
   td { padding: 0.65rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: var(--bg); }
-
   .badge { display: inline-block; padding: 0.2rem 0.6rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; }
   .badge-entrada { background: var(--green-soft); color: var(--green); }
   .badge-salida { background: var(--accent-soft); color: var(--accent); }
   .badge-devolucion { background: var(--yellow-soft); color: var(--yellow); }
-
   .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 0.2rem 0.4rem; opacity: 0.5; }
   .del-btn:hover { opacity: 1; color: var(--accent); }
-
   .empty { text-align: center; padding: 3rem; color: var(--muted); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; }
-
   .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
   .catalog-card { background: var(--surface); border: 1px solid var(--border); padding: 1.2rem; }
   .catalog-name { font-family: 'DM Serif Display', serif; font-size: 1.1rem; margin-bottom: 0.8rem; }
   .catalog-stat { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.3rem; }
   .catalog-stat span { color: var(--text); font-weight: 500; }
-
   .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--text); color: var(--bg); padding: 0.75rem 1.2rem; font-size: 0.75rem; letter-spacing: 0.08em; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
   .toast.show { opacity: 1; }
-
-  .config-bar { background: var(--accent-soft); border: 1px solid #E8C4B8; padding: 1rem 1.4rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-  .config-bar label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); white-space: nowrap; }
-  .config-bar input { flex: 1; min-width: 200px; padding: 0.5rem 0.8rem; border: 1px solid #E8C4B8; background: white; font-family: 'DM Mono', monospace; font-size: 0.8rem; outline: none; }
-  .btn-save { background: var(--accent); color: white; padding: 0.5rem 1rem; white-space: nowrap; font-family: 'DM Mono', monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; border: none; }
-  .config-edit { font-size: 0.7rem; color: var(--muted); cursor: pointer; text-decoration: underline; margin-left: auto; }
-
   @media (max-width: 600px) {
     .form-grid { grid-template-columns: 1fr 1fr; }
     .summary { grid-template-columns: 1fr; }
@@ -100,13 +73,6 @@
 </header>
 
 <div class="container">
-
-  <div class="config-bar" id="config-bar">
-    <label>URL del Web App:</label>
-    <input type="text" id="api-url" placeholder="https://script.google.com/macros/s/.../exec">
-    <button class="btn-save" onclick="saveUrl()">Conectar</button>
-  </div>
-
   <div class="summary">
     <div class="card">
       <div class="card-label">Total Metros</div>
@@ -168,7 +134,7 @@
         <thead>
           <tr><th>Fecha</th><th>Tela</th><th>Tipo</th><th>Metros</th><th>Rollos</th><th>Nota</th><th></th></tr>
         </thead>
-        <tbody id="tabla-body"><tr><td colspan="7" class="empty">Conecta el Web App para ver datos</td></tr></tbody>
+        <tbody id="tabla-body"><tr><td colspan="7" class="empty">Cargando...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -176,31 +142,15 @@
   <div id="tab-catalogo" style="display:none">
     <div id="catalogo-grid" class="catalog-grid"></div>
   </div>
-
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+  const API = 'https://script.google.com/macros/s/AKfycbwy8Z1qS0enBiclM1sVFksPo4Ye9ckmNa28KDaDb1JjosWoQabBP1S89MCobYsfWfE2Aw/exec';
   let DATA = [];
-  let API_URL = localStorage.getItem('telas_api_url') || '';
 
   document.getElementById('date-display').textContent = new Date().toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-
-  if (API_URL) {
-    document.getElementById('api-url').value = API_URL;
-    document.getElementById('config-bar').style.display = 'none';
-    loadData();
-  }
-
-  function saveUrl() {
-    const url = document.getElementById('api-url').value.trim();
-    if (!url.includes('script.google.com')) { alert('URL inválida.'); return; }
-    API_URL = url;
-    localStorage.setItem('telas_api_url', url);
-    document.getElementById('config-bar').style.display = 'none';
-    loadData();
-  }
 
   function toast(msg) {
     const t = document.getElementById('toast');
@@ -209,19 +159,28 @@
     setTimeout(() => t.classList.remove('show'), 2500);
   }
 
+  function buildUrl(params) {
+    const qs = Object.entries(params).map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+    return `${API}?${qs}`;
+  }
+
+  async function api(params) {
+    const res = await fetch(buildUrl(params));
+    return res.json();
+  }
+
   async function loadData() {
     try {
-      const res = await fetch(API_URL);
-      const json = await res.json();
+      const json = await api({ action: 'list' });
       DATA = json.data || [];
       render();
     } catch(e) {
-      toast('Error al conectar. Verifica la URL.');
+      toast('Error al cargar datos.');
+      document.getElementById('tabla-body').innerHTML = `<tr><td colspan="7" class="empty">Error al conectar</td></tr>`;
     }
   }
 
   async function addMovimiento() {
-    if (!API_URL) { alert('Primero configura la URL del Web App.'); return; }
     const nombre = document.getElementById('f-nombre').value.trim();
     const tipo = document.getElementById('f-tipo').value;
     const metros = parseFloat(document.getElementById('f-metros').value) || 0;
@@ -235,10 +194,8 @@
     btn.disabled = true;
     btn.textContent = 'Guardando...';
 
-    const row = { id: Date.now(), fecha: new Date().toISOString(), nombre, tipo, metros, rollos, nota };
-
     try {
-      await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'add', row }) });
+      await api({ action: 'add', id: Date.now(), fecha: new Date().toISOString(), nombre, tipo, metros, rollos, nota });
       document.getElementById('f-nombre').value = '';
       document.getElementById('f-metros').value = '';
       document.getElementById('f-rollos').value = '';
@@ -255,7 +212,7 @@
   async function deleteMovimiento(id) {
     if (!confirm('¿Eliminar este movimiento?')) return;
     try {
-      await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', id }) });
+      await api({ action: 'delete', id });
       toast('Eliminado ✓');
       await loadData();
     } catch(e) {
@@ -325,6 +282,8 @@
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
   }
+
+  loadData();
 </script>
 </body>
 </html>
