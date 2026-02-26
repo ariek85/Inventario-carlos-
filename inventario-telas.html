@@ -166,7 +166,13 @@
 
   async function api(params) {
     const res = await fetch(buildUrl(params));
-    return res.json();
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch(e) {
+      console.error('Respuesta no-JSON del servidor:', text);
+      throw new Error('Respuesta inválida: ' + text.substring(0, 200));
+    }
   }
 
   async function loadData() {
@@ -175,7 +181,7 @@
       DATA = json.data || [];
       render();
     } catch(e) {
-      toast('Error al cargar datos.');
+      toast('Error al cargar: ' + e.message);
       document.getElementById('tabla-body').innerHTML = `<tr><td colspan="7" class="empty">Error al conectar</td></tr>`;
     }
   }
@@ -203,7 +209,8 @@
       toast('Registrado ✓');
       await loadData();
     } catch(e) {
-      toast('Error al guardar.');
+      toast('Error: ' + e.message);
+      console.error('Error al guardar:', e);
     }
     btn.disabled = false;
     btn.textContent = 'Registrar';
