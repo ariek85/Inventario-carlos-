@@ -143,6 +143,9 @@
   </div>
 
   <div id="tab-catalogo" style="display:none">
+    <div class="search-bar">
+      <input type="text" id="search-catalogo" placeholder="Buscar tela en catálogo..." oninput="renderCatalogo()">
+    </div>
     <div id="catalogo-grid" class="catalog-grid"></div>
   </div>
 </div>
@@ -266,18 +269,25 @@
     }).join('');
   }
 
-  function render() {
+  function renderCatalogo() {
     const inv = calcInventario();
-    renderTable();
-    const keys = Object.keys(inv);
+    const search = document.getElementById('search-catalogo').value.toLowerCase();
+    const keys = Object.keys(inv).filter(k => !search || k.toLowerCase().includes(search));
     document.getElementById('catalogo-grid').innerHTML = keys.length === 0
-      ? '<div class="empty" style="grid-column:1/-1">Sin productos</div>'
+      ? '<div class="empty" style="grid-column:1/-1">Sin resultados</div>'
       : keys.map(k => `
         <div class="catalog-card">
           <div class="catalog-name">${k}</div>
           <div class="catalog-stat">Metros: <span>${inv[k].metros.toFixed(2)} m</span></div>
           <div class="catalog-stat">Rollos: <span>${inv[k].rollos}</span></div>
         </div>`).join('');
+  }
+
+  function render() {
+    const inv = calcInventario();
+    renderTable();
+    renderCatalogo();
+    const keys = Object.keys(inv);
     const totalMetros = keys.reduce((s, k) => s + Math.max(0, inv[k].metros), 0);
     const totalRollos = keys.reduce((s, k) => s + Math.max(0, inv[k].rollos), 0);
     document.getElementById('sum-metros').textContent = totalMetros.toFixed(1);
