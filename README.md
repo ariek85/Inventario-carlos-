@@ -15,8 +15,6 @@ con cantidad + unidad y campo cliente para salidas.
 - App: [`inventario-materia-prima.html`](inventario-materia-prima.html)
 - Backend Apps Script: [`Code.gs`](Code.gs)
 - Fuente del catálogo: [`materia_prima.csv`](materia_prima.csv)
-- **Instalación del backend:** [`INSTRUCCIONES.md`](INSTRUCCIONES.md)
+- Instalación del backend (referencia): [`INSTRUCCIONES.md`](INSTRUCCIONES.md)
 
-> Pendiente para que quede 100% funcional: crear el Google Sheet, pegar `Code.gs`,
-> implementar como app web y pegar la URL `/exec` en la variable `API` del HTML
-> (ver INSTRUCCIONES.md). Es el único paso que requiere tu cuenta de Google.
+Backend conectado y funcionando. Para reinstalar o mover el Sheet, ver INSTRUCCIONES.md.
