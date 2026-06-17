@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario de Materia Prima</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F0E8; --surface: #FDFAF4; --border: #D4C9B0;
+    --text: #1A1410; --muted: #7A6E5F; --accent: #C4401A;
+    --accent-soft: #F5E8E3; --green: #2D6A4F; --green-soft: #E3F0EA;
+    --yellow: #A07800; --yellow-soft: #FAF3DC;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Mono', monospace; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
+  header { max-width: 1000px; margin: 0 auto 2.5rem; display: flex; align-items: baseline; justify-content: space-between; border-bottom: 2px solid var(--text); padding-bottom: 1rem; }
+  header h1 { font-family: 'DM Serif Display', serif; font-size: 2.2rem; letter-spacing: -0.02em; }
+  header span { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); padding: 1.2rem 1.4rem; }
+  .card-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 0.5rem; }
+  .card-value { font-family: 'DM Serif Display', serif; font-size: 2rem; line-height: 1; }
+  .card-sub { font-size: 0.7rem; color: var(--muted); margin-top: 0.3rem; }
+  .form-section { background: var(--surface); border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 2rem; }
+  .form-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; margin-bottom: 1.2rem; }
+  .form-grid { display: grid; grid-template-columns: 3fr 1fr 1fr 1.2fr; gap: 0.75rem; align-items: end; }
+  .field label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
+  .field input, .field select { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border); background: var(--bg); font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--text); outline: none; }
+  .field input:focus, .field select:focus { border-color: var(--text); }
+  .resolved { font-size: 0.72rem; margin-top: 0.5rem; min-height: 1.1rem; }
+  .resolved.ok { color: var(--green); }
+  .resolved.no { color: var(--accent); }
+  .btn { padding: 0.65rem 1.2rem; font-family: 'DM Mono', monospace; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; border: none; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.8; }
+  .btn-primary { background: var(--text); color: var(--bg); width: 100%; margin-top: 1rem; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tabs { display: flex; margin-bottom: 1rem; border-bottom: 2px solid var(--border); }
+  .tab { padding: 0.6rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; border: none; background: none; color: var(--muted); font-family: 'DM Mono', monospace; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
+  .search-bar { margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+  .search-bar input[type=text] { flex: 1; min-width: 200px; padding: 0.65rem 1rem; border: 1px solid var(--border); background: var(--surface); font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--text); outline: none; }
+  .check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; cursor: pointer; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th { text-align: left; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 0.65rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg); }
+  .clave { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+  .badge { display: inline-block; padding: 0.2rem 0.6rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; }
+  .badge-entrada { background: var(--green-soft); color: var(--green); }
+  .badge-salida { background: var(--accent-soft); color: var(--accent); }
+  .badge-devolucion { background: var(--yellow-soft); color: var(--yellow); }
+  .stock-pos { color: var(--green); font-weight: 500; }
+  .stock-zero { color: var(--muted); }
+  .stock-neg { color: var(--accent); font-weight: 500; }
+  .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 0.2rem 0.4rem; opacity: 0.5; }
+  .del-btn:hover { opacity: 1; color: var(--accent); }
+  .empty { text-align: center; padding: 3rem; color: var(--muted); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--text); color: var(--bg); padding: 0.75rem 1.2rem; font-size: 0.75rem; letter-spacing: 0.08em; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .banner { max-width: 1000px; margin: 0 auto 1.5rem; background: var(--yellow-soft); border: 1px solid var(--yellow); color: var(--yellow); padding: 0.8rem 1rem; font-size: 0.75rem; }
+  @media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr 1fr; }
+    .summary { grid-template-columns: 1fr; }
+    header { flex-direction: column; gap: 0.3rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Inventario de Materia Prima</h1>
+  <span id="date-display"></span>
+</header>
+
+<div id="config-banner" class="banner" style="display:none">
+  ⚠ Falta configurar la URL del Apps Script. Abre este archivo y reemplaza <strong>PEGA_AQUI_LA_URL_DE_TU_APPS_SCRIPT</strong> en el código (variable <code>API</code>).
+</div>
+
+<div class="container">
+  <div class="summary">
+    <div class="card">
+      <div class="card-label">Artículos en Catálogo</div>
+      <div class="card-value" id="sum-catalogo">—</div>
+      <div class="card-sub">productos registrados</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Con Existencia</div>
+      <div class="card-value" id="sum-existencia">—</div>
+      <div class="card-sub">artículos con stock</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Movimientos</div>
+      <div class="card-value" id="sum-movimientos">—</div>
+      <div class="card-sub">registrados en total</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-title">+ Registrar Movimiento</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Producto (clave o descripción)</label>
+        <input type="text" id="f-producto" placeholder="Busca por clave o nombre..." list="productos-list" oninput="resolveProducto()" autocomplete="off">
+        <datalist id="productos-list"></datalist>
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="f-tipo" onchange="toggleCliente(this.value)">
+          <option value="entrada">Entrada</option>
+          <option value="salida">Salida</option>
+          <option value="devolucion">Devolución</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cantidad</label>
+        <input type="number" id="f-cantidad" placeholder="0" min="0" step="any">
+      </div>
+      <div class="field">
+        <label>Unidad</label>
+        <input type="text" id="f-unidad" placeholder="pieza" list="unidades-list" autocomplete="off">
+        <datalist id="unidades-list">
+          <option value="pieza"><option value="metro"><option value="litro"><option value="kilo">
+          <option value="caja"><option value="rollo"><option value="paquete"><option value="bolsa">
+          <option value="juego"><option value="par"><option value="ciento"><option value="millar">
+        </datalist>
+      </div>
+    </div>
+    <div id="resolved" class="resolved"></div>
+    <div id="campo-cliente" style="display:none;margin-top:0.75rem;">
+      <input type="text" id="f-cliente" placeholder="Nombre del cliente..." style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border);background:var(--bg);font-family:'DM Mono',monospace;font-size:0.85rem;outline:none;">
+    </div>
+    <input type="text" id="f-nota" placeholder="Nota opcional..." style="width:100%;margin-top:0.75rem;padding:0.6rem 0.8rem;border:1px solid var(--border);background:var(--bg);font-family:'DM Mono',monospace;font-size:0.85rem;outline:none;">
+    <button class="btn btn-primary" id="btn-add" onclick="addMovimiento()">Registrar</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('movimientos', this)">Movimientos</button>
+    <button class="tab" onclick="showTab('catalogo', this)">Catálogo</button>
+  </div>
+
+  <div id="tab-movimientos">
+    <div class="search-bar">
+      <input type="text" id="search" placeholder="Buscar por clave o producto..." oninput="renderTable()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Fecha</th><th>Clave</th><th>Producto</th><th>Tipo</th><th>Cliente</th><th>Cantidad</th><th>Nota</th><th></th></tr>
+        </thead>
+        <tbody id="tabla-body"><tr><td colspan="8" class="empty">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-catalogo" style="display:none">
+    <div class="search-bar">
+      <input type="text" id="search-catalogo" placeholder="Buscar en catálogo..." oninput="renderCatalogo()">
+      <label class="check"><input type="checkbox" id="solo-existencia" onchange="renderCatalogo()"> Solo con existencia</label>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Clave</th><th>Producto</th><th>Existencia</th></tr>
+        </thead>
+        <tbody id="catalogo-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ===== CONFIGURACIÓN =====
+  // Pega aquí la URL que te da Google al implementar el Apps Script (ver INSTRUCCIONES.md)
+  const API = 'PEGA_AQUI_LA_URL_DE_TU_APPS_SCRIPT';
+
+  // ===== CATÁLOGO (generado desde materia_prima.csv) =====
+  // Formato: [clave, descripción]
+  const CATALOGO_RAW = /*__CATALOGO__*/[
+  ["PC-BR-BR-01", "[L16F-NI-SM] Broche Pañalero Fierro L16"],
+  ["CO-CD-AC-02", "ACEITE X LITRO"],
+  ["GE-AS-AC-1", "Acetato de sodio trihidratado por kilo"],
+  ["SAN-ACO-01L", "ACONDICIONADOR"],
+  ["AC-CH-MT-01", "Activador metalico para autocalentable"],
+  ["PA-PA-DO-01", "ADH 2 CARAS POLIESTER 51 x 66"],
+  ["SE-GR-AD-03", "ADHESIVO 250 (800 GMS)"],
+  ["MP7-AD", "ADHESIVO EN AEROSOL EXPERT HOLD-TIGHT"],
+  ["AD-GR-AS-01-PZ", "ADHESIVO EN SPRAY PR 16 OZ"],
+  ["MP6-AD", "ADHESIVO G-908"],
+  ["SE-SA-AD-01", "ADHESIVO LIQUIDO 1 LT"],
+  ["SE-SE-AD-01", "ADHESIVO PRIMER AB2001 P/ALUMINIO"],
+  ["ADHESIVO", "ADHESIVO REPOSCIONABLE TRANSPARENTE"],
+  ["CO-SY-AG-01", "AGUA PURIFICADA"],
+  ["CO-CD-AG-01", "AGUJA PUNTA BOLA FINA717094 S01-R"],
+  ["CO-CD-AG-02", "AGUJA PUNTA DE BOLA777922"],
+  ["GR-TI-AH-02", "AHULADO BLANCO VPM-910 (250 GMS.)"],
+  ["GR-TI-AH-03", "AHULADO DILUYENTE DYT-907 (250 GMS.)"],
+  ["GR-TI-AH-01", "AHULADO NEGRO VPM-101 (250 GMS.)"],
+  ["ALAMBRE PULIDO", "ALAMBRE PULIDO#13"],
+  ["MP8-ALG-LT", "ALCOGEL ECONOMICO"],
+  ["MP8-ALE-LT", "ALCOHOL ETILICO"],
+  ["GR-AC-AP-01", "APLICADOR DE EMULSION DE ALUMINIIO 45 CM"],
+  ["TI-SE-BO-01", "AZUL OBSCURO BOLSA KG"],
+  ["SA-TI-PP-04", "AZUL PP NON WOVEN"],
+  ["CO-MJ-PL-01", "B.PLACA TK-335"],
+  ["PM-BA-BA-01", "BANDOLA C#1 OVAL 25MM NQ CIENTO"],
+  ["PA-BA-NY-01-PZ", "BARRA DE NYLON HUESO DE 1/4\""],
+  ["MC-CD-BA-01", "BASE DE PIE T35CW"],
+  ["GEL-MACO-VINIL", "BASE VINIL 36x22.5"],
+  ["BIE-FF-001", "BIES DE FUNDAFLEX"],
+  ["BIE-G-001", "BIES GRIS"],
+  ["BIE-N-001", "BIES NEGRO"],
+  ["BO-SE-BC-01", "BLANCO BOLSA KG TINBOL006 KG"],
+  ["47131803", "BLANQUEADOR AL 4%/ACIDO MURIATICO"],
+  ["CO-CD-BO-01", "BOBINA BC DB1"],
+  ["GS-BO-BP-01", "Bolsa 17x18 Polietileno natural"],
+  ["SLAPOLS06", "Bolsa 211 12x29"],
+  ["MP8-BP30-PZ", "BOTELLA PIRAMIDE 30 ML 15/415 NATURAL"],
+  ["MP5-101", "BROCHE BLANCO 10MM AJUSTE SUVE"],
+  ["BR-CHC-001MP", "BROCHE CHINO CLAVO"],
+  ["BRO-CH-HE-001", "BROCHE CHINO HEMBRA"],
+  ["BR-CHM-001-MP", "BROCHE CHINO MACHO"],
+  ["MP5-102", "BROCHE NEGRO 10MM AJUSTE SUVE"],
+  ["MP5-103", "BROCHE ROSA 10MM AJUSTE SUVE"],
+  ["MP-HM-CA-PZ", "CABEZOTE"],
+  ["PM-CA-BO-01", "CADENA DE BOLITA 2.5mm c/100m NIQUEL"],
+  ["MP5-127", "CADENETA BLANCO 3MM"],
+  ["29-EMP-L-192-PZ", "CAJA CARTON CORRUGADO 37X27X30"],
+  ["EM-CA-CC-01-PZ", "CAJA CARTON CORRUGADO 28.5x25x30"],
+  ["EM-CR-02-PZ", "CAJA CARTON CORRUGADO 30x30x25"],
+  ["EM-CA-MO-01-PZ", "CAJA CARTON CORRUGADO 32X22X17"],
+  ["JO-DO-CO-01-PZ", "CAJA CARTON CORRUGADO 44X16X25"],
+  ["EM-CR-01-PZ", "CAJA CARTON CORRUGADO 45x30x30"],
+  ["EM-CR-03-PZ", "CAJA CARTON CORRUGADO 48x36x30"],
+  ["29-EMP-L-072-PZ", "CAJA CARTON CORRUGADO 50X40X30"],
+  ["JO-DO-CO-02-PZ", "CAJA CH DOBLE CORR 44..0 X 16.0 X 24.0"],
+  ["EM-CR-02PZ", "CAJA CORRUGADO 30x30x20"],
+  ["EM-CR-04-PZ", "CAJA CORRUGADO 37x27x30"],
+  ["MP9-L-010", "CAJA DE CARTÓN CORRUGADO 24x24x25"],
+  ["MP9-L-012", "CAJA DE CARTÓN CORRUGADO 27.5x22x17.5"],
+  ["MP9-L-014", "CAJA DE CARTÓN CORRUGADO 28x28x22"],
+  ["MP9-L-040", "CAJA DE CARTÓN CORRUGADO 45x30x30"],
+  ["MP9-L-017", "CAJA DE CARTÓN CORRUGADO30x30x25"],
+  ["29-MPV-DOBLE-PZ", "CAJA DOBLE CORRUGADO 19X45X28"],
+  ["29-EMP-DOBLE-PZ1", "CAJA DOBLE CORRUGADO18X44X26"],
+  ["JO-DO-CO-03-PZ", "CAJA GRANDE DOB CORR 44.0 X 18.0 X 26.0"],
+  ["29-EMP-VA-CH", "CAJA TOPLOADERS 249.25X125.293"],
+  ["29-EMP-VA-GDE", "CAJA TOPLOADERS 264X125.293"],
+  ["MAT-CAN-02", "CANASTO BEIGE"],
+  ["MAT-CAN-GR", "CANASTO GRIS"],
+  ["MAT-CAN-01", "CANASTO NEGRO"],
+  ["01-POLY-VD", "CANASTO VERDE"],
+  ["PA-PA-CA-01", "CAPLE PONDER REV CAFE 60X90 14P"],
+  ["GE-CL-CA-01", "CARBOMER 340 BOLSA 1KG"],
+  ["GE-CL-CA-CJ", "CARBOMER 340 CJ 21 KG"],
+  ["CO-CD-CA-01", "CARRETEL LISO RANURACORTA B0-1032B-755 S"],
+  ["MP5-109", "CARRO CIERRE DE NYLON #5 NEGRO"],
+  ["MP5-107", "CARRO JALADERA P/CIERRE PVC TRANSPARENTE"],
+  ["P5-105", "CARRO No. 5 AZUL MARINO"],
+  ["53141600", "CARRO No. 5 BLANCO"],
+  ["P5-104", "CARRO No. 5 GRIS"],
+  ["CIM-C5-BA-MT", "CARRO No. 5 VERDE BANDERA P/CIERRE"],
+  ["MP5-108", "CARRO PARA CIERRE DE VINIL NEGRO"],
+  ["MP5-114", "CARRO PARA CIERRE NYLON #3 VERDE"],
+  ["MP5-106", "CARRO PARA CIERRE VINIL TRANSPARENTE"],
+  ["PA-PA-AG-PZ", "CARTON AGUA GRAF 92X130 98P 2.50 MM"],
+  ["MP6-CA", "CARTÓN GRIS NAL. #6 (3MM) 100*130CM"],
+  ["CAR-001-CH", "CARTULINA CARTON CHICA"],
+  ["CAR-002-GR", "CARTULINA CARTON GRANDE"],
+  ["SE-SE-CA-01", "CATALIZADOR ADHESIVO AB-8066"],
+  ["CI-CB-CA", "CATALOGO DE COLORES"],
+  ["CI-CB-CI-03", "CIERRE AZUL MARINO No. 3"],
+  ["CIE-B-T-001-MP", "CIERRE BLANCO TRANSPARENTE"],
+  ["CI-CB-CD-01", "CIERRE CARBON CON DESLIZADORES"],
+  ["CIE-NG-001", "CIERRE CHINO NEGRO (MADEJA)"],
+  ["CR-001-CH", "CIERRE CHINO TRANSPARENTE"],
+  ["CI-CB-CP-PZ", "CIERRE DE 1 MT POLIESTER 03 MARINO"],
+  ["CI-CB-CN-01", "CIERRE DE 1 MT POLIESTER 05 ESMERALDA"],
+  ["CI-IM-CN-16", "CIERRE DE 1 MT POLIESTER 05 GRIS"],
+  ["MP5-110", "CIERRE DE NYLON #5 NEGRO"],
+  ["MP5-113", "CIERRE DE NYLON #3 VERDE"],
+  ["MPV-A-000211-MT", "CIERRE DE NYLON AZUL REY NO.5"],
+  ["MP5-112", "CIERRE DE VINIL C/CARRO NEGRO"],
+  ["MP5-111", "CIERRE DE VINIL C/CARRO TRANSPARENTE"],
+  ["CI-CB-CI-01", "CIERRE GRIS 16 No. 5"],
+  ["MP5-133", "CIERRE MINIGRIP NEGRO"],
+  ["MP5-132", "CIERRE MINIGRIP TRANSPARENTE"],
+  ["MP5-115", "CIERRE NEGRO DE CARRO CON JALADERA"],
+  ["CI-IM-CN-05", "CIERRE No 5 AZUL PANAM"],
+  ["CI-IM-CN-11", "CIERRE No 5 BEIGE"],
+  ["53141506", "CIERRE No 5 COLORES"],
+  ["CI-IM-CN-08", "CIERRE No 5 FIUSHA"],
+  ["CI-IM-CN-06", "CIERRE No 5 ROSA PASTEL"],
+  ["CI-IM-CN-07", "CIERRE No 5 VERDE MANZANA"],
+  ["CI-IM-CN-09", "CIERRE No 5AZUL CLARO"],
+  ["MPV-A-000210-MT", "CIERRE No. 5 AZUL MARINO"],
+  ["MPV-A-000201-MT", "CIERRE No. 5 BLANCO"],
+  ["PL-A-00211", "CIERRE No. 5 GRIS"],
+  ["CI-IM-CN-12", "CIERRE No. 5 GRIS OBSCURO"],
+  ["CI-IM-CN-14", "CIERRE No. 5 VERDE BANDERA"],
+  ["CI-IM-CN-15", "CIERRE No.5 MANDARINA"],
+  ["CI-IM-CN-13", "CIERRE No.5 ROJO"],
+  ["CI-IM-CN-10", "CIERRE NYLON No 5 GRIS MEDIO"],
+  ["CI-IM-CN-02", "CIERRE NYLON No. 5 Gris Plata"],
+  ["CI-IM-CN-03", "CIERRE NYLON No. 5 MENTA"],
+  ["CI-IM-CN-01", "CIERRE NYLON No. 5 NEGRO"],
+  ["CI-IM-CN-04", "CIERRE NYLON No. 5 VERDE LIMON"],
+  ["CI-CB-CI-02", "CIERRE OXFORD 36 No. 5"],
+  ["CI-CB-CT-01", "CIERRE TERMINADO No. 3 DE 20 CM BLANCO"],
+  ["CI-CM-CT-02", "CIERRE TIMON No. 5 ORO CON DESLIZADORES"],
+  ["CI-CM-CT-01", "CIERRE TIMON No. 5 PLATA CON DESLIZADORE"],
+  ["CI-CM-CT-03", "CIERRE TIMON ORO NEGRO No. 5"],
+  ["CI-CM-CT-04", "CIERRE TIMON PLATA NEGRO No. 5"],
+  ["MP5-116", "CIERRE TRANS. DE CARRO CON JALADERA"],
+  ["CR-002-CH", "CIERRE ZIP CHINO NEGRO"],
+  ["MP9-CT-01", "CINTA JANEL 255 TRANSPARENTE 18x65"],
+  ["CI-IM-CI-04", "CINTA 1\" POPOTILLO AMARILLO CANARIO"],
+  ["CIM-CI-VE-PZ", "CINTA 1\" VERDE BANDERA"],
+  ["CI-CI-PO-01", "CINTA 11/4\" BLANCO"],
+  ["CI-CI-PO-02", "CINTA 3/4\" BLANCO"],
+  ["CI-GN-DI-01", "CINTA ADHESIVA DIUREX TUK200 24MMx65MTS"],
+  ["GNS-TUK179", "CINTA ADHESIVA TUK179 48MM"],
+  ["31151503", "CINTA BLANCA 1\""],
+  ["MP9-CC", "CINTA CANELA 48MMx150MTS"],
+  ["AL-CON-02-PZ", "CINTA CANELA JANEL 066 48MMX150MTS"],
+  ["CI-GN-DI-02", "CINTA CORTEFACIL TUK-200 12mm X 65mts"],
+  ["29-EMP-CE-PZ", "CINTA DE ENGOMADO"],
+  ["MP5-139", "CINTA DOBLE CAPA 2\"x50 MT DP389 AMARILLA"],
+  ["DB-CAR-1-2-PUL", "CINTA DOBLE CAPA MEDIA PULGADA"],
+  ["S-DO-DM789-25", "CINTA DOBLE CARA 25MMX50M 1 1/4\""],
+  ["S-DO-DM789-48", "CINTA DOBLE CARA 48MMX50M 2'"],
+  ["CI-SE-DC-01", "CINTA DOBLE CARA DT-147 24 mm x 50 m"],
+  ["CI-SE-DC-02", "CINTA DOBLE CARA MOD. DM-789 25MMX50M 1\""],
+  ["OD-CI-CI-01", "CINTA DYMO M10697 PAPEL BN PZ"],
+  ["CIN-001-GMP", "CINTA GORILA"],
+  ["CI-IM-CI-02", "CINTA P.P.P 1 1/2\" VERDE LIMON"],
+  ["FA-HI-CO-03-MTR", "CINTA P.P.P. 1\" NEGRA"],
+  ["CO-IM-CI-02-PZ", "CINTA P.P.P. 1 1/4\" NEGRA"],
+  ["CI-IM-CI-07", "CINTA P.P.P. 1\" AZUL PANAM"],
+  ["CI-IM-CI-08", "CINTA P.P.P. 1\" MANDARINA"],
+  ["CI-IM-CI-05", "CINTA P.P.P. 1\" ROJO"],
+  ["CI-IM-CI-06", "CINTA P.P.P. 1\" VERDE BANDERA"],
+  ["CI-IM-CI-01", "CINTA P.P.P. 1\" VERDE LIMON"],
+  ["CI-IM-CI-03", "CINTA P.P.P. 11/2\" AMARILLO CANARIO"],
+  ["CO-IM-CI-01-PZ", "CINTA P.P.P. 11/4 BLANCA"],
+  ["PR-CR-TR-MM2", "CINTA RECTA A 18MM VERDE"],
+  ["PR-CI-F-MM3", "CINTA RECTA 18MM FORRO C. A MARINO"],
+  ["PR-CR-TR-MM4", "CINTA RECTA 2.5 CM GRIS"],
+  ["PR-CI-01-PZ", "CINTA RECTA 8 CM BLANCO"],
+  ["PR-CR--TR-MM3", "CINTA RECTA 8CM BEIGE"],
+  ["PR-CR-TR-MM", "CINTA RECTA A 18 MM TRANS SAT"],
+  ["PR-CR-TR-MM1", "CINTA RECTA A 38MM TRANSP"],
+  ["MP9-CT", "CINTA TRANSPARENTE 48MMx150MTS"],
+  ["CO-CD-DE-03", "CLIPPER DESHEBRADOR GEN ANYSEWTC-805B"],
+  ["COF-001", "COFIA VENECIANA JERSEY AZUL MARINO"],
+  ["MP8-CLA-PZ", "COLOR LIQUIDO ARTIFICIAL"],
+  ["CO-JC-MO-PZA", "COLOR MORADO 10 ML"],
+  ["CO-AL-CO-01", "COLORANTE LIQUIDO AZUL CIELO"],
+  ["CO-LC-CO-01", "COLORANTE PARA JABON MORADO 30 ML"],
+  ["CO-RM-RO-01-PZA", "COLORCHEF LIQUIDO ROSA 250 ML"],
+  ["CO-RM-RO-PZA", "COLORCHEF LIQUIDO ROSA 60 ML"],
+  ["MP5-117", "CONECTOR PARA LLAVERO"],
+  ["PM-CA-BO-02", "CONECTORA P/CADENA DE BOLITA 2.5mm NIQUE"],
+  ["MP5-120", "CONTACTEL BLANCO 19MM x 25 MTS"],
+  ["MP5-118", "CONTACTEL BLANCO 2\"x25MTS CON ADHESIVO"],
+  ["MP5-119", "CONTACTEL BLANCO 2\"x25MTS SIN ADHESIVO"],
+  ["IM-CO-NE-01", "CONTACTEL NEGRO 1 \""],
+  ["CO-DL-02-PZ", "CONTENEDOR O ENVASE 1KG ENV/INC"],
+  ["OJ-PM-NI-02", "CONTRA METALICA OJILLO 11-Z"],
+  ["OJ-NE-NI-02", "CONTRAS K-20 CON 1000 PZAS"],
+  ["CO-FI-ALGODON", "CORDON ALGODON."],
+  ["FA-HI-CO-02-PZ", "CORDON CADENETA PARA CHINOS BLANCO 3 MM"],
+  ["CO-FI-MA-003", "CORDON DE ALGODON TIPO LAM AZUL MARINO"],
+  ["FA-HI-CO-03-KG", "CORDON MACRAME 26 AZUL CIELO"],
+  ["MAD-ASA-02-AZULM", "CORDON MACRAME AZUL MARINO"],
+  ["MACRA-0013MM", "CORDON MACRAME BLANCO"],
+  ["MAD-ASA-01-NEGRO", "CORDON MACRAME NEGRO"],
+  ["MP5-128", "CORDÓN TEJIDO 4MM GRIS PLATA"],
+  ["FA-HI-CO-04-KG", "CORDÓN TIPO LAM COLOR AMARILLO CANARIO"],
+  ["FA-HI-CO-01-PZ", "CORDON TIPO LAM COLOR GRIS PLATA"],
+  ["CO-FA-LAM-02", "CORDON TIPO LAM GRUESO 04 VERDE AGUA"],
+  ["CO-FA-LAM-03", "CORDON TIPO LAM GRUESO AZUL REY"],
+  ["CO-FA-LAM-01", "CORDON TIPO LAM GRUESO COLOR 14 NARANJA"],
+  ["FA-HI-CO-05-KG", "CORDON TIPO LAM GRUESO GRIS OXFORD"],
+  ["FA-HI-CO-02-KG", "CORDON TIPO LAM NEGRO 5 MM"],
+  ["PC-BR-BR-02", "Corona Broche Pañalero L16 (NQ, Jiber)"],
+  ["MP5-104", "CRISTAL CLEAR C-30 90*120 CM"],
+  ["MP5-105", "CRISTAL CLEAR C-40 90*120 CM"],
+  ["MP1-0486506-P", "CRISTAL FLEXIBLE C 10"],
+  ["MP1-0515007-P", "CRISTAL FLEXIBLE C 5.5"],
+  ["MP1-0488502-P", "CRISTAL FLEXIBLE CRISTAL C-12"],
+  ["MP1-0490003-P", "CRISTAL FLEXIBLE CRISTAL C-14"],
+  ["MP1-0492009-P", "CRISTAL FLEXIBLE CRISTAL C-16"],
+  ["MP1-0493502-P", "CRISTAL FLEXIBLE CRISTAL C-18"],
+  ["MP1-0500009-P", "CRISTAL FLEXIBLE CRISTAL C-2/5"],
+  ["MP1-0503508-P", "CRISTAL FLEXIBLE CRISTAL C-3/4"],
+  ["MP1-0507004-P", "CRISTAL FLEXIBLE CRISTAL C-4/5"],
+  ["MP1-0515008-P", "CRISTAL FLEXIBLE CRISTAL C-5/6"],
+  ["MP1-0481002-P", "CRISTAL FLEXIBLE CRISTAL C-8"],
+  ["MP1-1311121-D", "CRISTAL FLEXIBLE NATURAL C-6"],
+  ["CR-SM-001", "CRISTAL SEMIRRIGIDO TRANSPARENTE 2.5"],
+  ["CRI-SM-001-MP", "CRISTAL SEMIRRIGIDO TRANSPARENTE 4/5"],
+  ["PL-CR-SM-02", "CRISTAL SEMIRRIGIDO TRANSPARENTE 5.6"],
+  ["CRI-SM-T-KGR", "CRISTAL SEMIRRIGIDO TRANSPARENTE C 10"],
+  ["PL-CR-SM-01-PZ", "CRISTAL SEMIRRIGIDO TRANSPARENTE C 12"],
+  ["PL-CR-SM-03-R", "CRISTAL SEMIRRIGIDO TRANSPARENTE C 8"],
+  ["UB-CU-GA-01", "CUBETA 19 LTS CON TAPA DE SEGURIDAD"],
+  ["CUT-001-MT", "CUTTER 18 MM"],
+  ["CU-TT-UR-01", "CUTTER NAVAJA GDE METAL USO RUDO"],
+  ["CO-CD-DE-02", "DESCOSEDOR GRANDE ROJO C/BOLIT S:LOT00"],
+  ["SE-GR-DE-01", "DESEMULSIONADOR LIQUIDO"],
+  ["CO-CD-DE-01", "DESHEBRAD NORMALTC-100* CAJA 12 PZAS"],
+  ["DES-015", "DESLIZADOR 5VENUS ORO S/S"],
+  ["DES-SA-01", "DESLIZADOR DE CIERRE SPRING AIR"],
+  ["DES-114", "DESLIZADOR FANTASIA D27 PLAST NEGRO No 5"],
+  ["DES-115", "DESLIZADOR FANTASIA D60 PLAST NEGRO No 5"],
+  ["DES-017", "DESLIZADOR POL. 5 ESMERALDA J/LARGA"],
+  ["DES-029", "DESLIZADOR POL. 5 GRIS J/LARGA"],
+  ["DES-028", "DESLIZADOR POLIESTER 3 AZUL MARINO C/SEG"],
+  ["DES-030", "DESLIZADOR ZIP NEGRO CHINO"],
+  ["DES-013", "DESLIZADORES AZUL CLARO No 5"],
+  ["DES-008", "DESLIZADORES AZUL MARINO No. 5"],
+  ["DES-009", "DESLIZADORES AZUL PANAM No 5"],
+  ["DES-016", "DESLIZADORES AZUL REY No 5"],
+  ["DES-018", "DESLIZADORES BEIGE No 5"],
+  ["DES-001", "DESLIZADORES BLANCOS NO.3"],
+  ["DES-002", "DESLIZADORES BLANCOS NO.5"],
+  ["DES-026", "DESLIZADORES CHINO TRANSPARENTE"],
+  ["DES-027", "DESLIZADORES CHINOS GRIS"],
+  ["DES-012", "DESLIZADORES FIUSHA No 5"],
+  ["DES-024", "DESLIZADORES GRIS 16 No.5"],
+  ["DES-014", "DESLIZADORES GRIS MEDIO No 5"],
+  ["DES-005", "DESLIZADORES GRIS PLATA No. 5"],
+  ["DES-023", "DESLIZADORES MANDARINA No.5"],
+  ["DES-006", "DESLIZADORES MENTA No. 5"],
+  ["DES-003", "DESLIZADORES NEGROS NO. 5"],
+  ["DES-004", "DESLIZADORES NIQUELADOS NO.5"],
+  ["DES-019", "DESLIZADORES ORO No. 5"],
+  ["DES-025", "DESLIZADORES OXFORD 36 No.5"],
+  ["DES-020", "DESLIZADORES PLATA"],
+  ["DES-021", "DESLIZADORES ROJO No. 5"],
+  ["DES-002-RMP", "DESLIZADORES ROJOS"],
+  ["DES-010", "DESLIZADORES ROSA PASTEL No 5"],
+  ["DES-022", "DESLIZADORES VERDE BANDERA No. 5"],
+  ["DES-007", "DESLIZADORES VERDE LIMON No. 5"],
+  ["DES-011", "DESLIZADORES VERDE MANZANA No 5"],
+  ["53131608", "DETERGENTE ROMA DE 5 KG"],
+  ["MP7-IS", "DILUYENTE ISOFORONA"],
+  ["MP7-SP", "DILUYENTE SP-400"],
+  ["MPV-TS-0000172", "DILUYENTE SP-500"],
+  ["MP9-DCF", "DIUREX CORTE FÁCIL DE 24MMx65M"],
+  ["CI-AR-DI-01", "DIUREX CORTE FACIL JANEL DE 18x50"],
+  ["IM-CI-DC-01", "DOBLE CAPA 12x50 POLIPROPILENO DEVEK"],
+  ["11162100", "ELASTICO COLETERO BLANCO"],
+  ["MP5-121", "ELASTICO TUBULAR"],
+  ["MP1-1116211-D", "EMPACK FLEXIBLE NATURAL C-4"],
+  ["EMPA-ANTI", "EMPAQUE ANTIBLOCK 4"],
+  ["MP1-0000021-S", "EMPAQUE ANTIBLOCK C 3.5"],
+  ["EMP-C3.5-1.41", "EMPAQUE ANTIBLOCK C3.5 1.41 PLATEADO"],
+  ["EMP-003", "EMPAQUE ANTIBLOCK CHAROL C 2.5"],
+  ["EMP-002", "EMPAQUE ANTIBLOCK CHAROL PLATEADO 3/3.5"],
+  ["EMP-001", "EMPAQUE ANTIBLOCK CHAROL PLATEADO C 4"],
+  ["MP1-0000016-S", "EMPAQUE ANTIBLOCK PLATA C-2.5"],
+  ["MP1-0000017-S", "EMPAQUE ANTIBLOCK PLATA C-3"],
+  ["MP1-0000020-S", "EMPAQUE ANTIBLOCK PLATA C-3.5"],
+  ["MP1-0000018-S", "EMPAQUE ANTIBLOCK PLATA C-4"],
+  ["MP1-0000019-S", "EMPAQUE ANTIBLOCK PLATA C-6"],
+  ["3-EM-CIM", "EMPAQUE DE VINIL CON IMPRESIÓN"],
+  ["3-EM-CI", "EMPAQUE DE VINIL CON IMPRESIÓN"],
+  ["DCO-EMPVINIL4", "EMPAQUE DE VINIL CRISTAL"],
+  ["EMPSI", "EMPAQUE DE VINIL SIN IMPRESION"],
+  ["3-EM-SINAD", "EMPAQUE DE VINIL SIN IMPRESION"],
+  ["E-EM-SIM", "EMPAQUE DE VINIL SIN IMPRESIÓN"],
+  ["3-EM-VSI", "EMPAQUE DE VINIL SIN IMPRESIÓN"],
+  ["VIQG-EM-CI 68", "EMPAQUE DE VINIL STD 68x48"],
+  ["LMFCSIL17-DEV", "EMPAQUE EDREDON VERANO LIVERPOOL BIEGE"],
+  ["ENBO000480", "EMPAQUE VINIL ENBO000480 72X52"],
+  ["ENBO000481", "EMPAQUE VINIL ENBO000481 92x52"],
+  ["SO-DG-CP-PZ", "EMULSION CHROMALINE CP-2 SIN SENSIBILIZA"],
+  ["MP7-EM", "EMULSIÓN CP-2 DIAZO Y FRASCO SATINIZADOR"],
+  ["MP6-EN", "ENVASE / GARRAFÓN"],
+  ["CO-CD-EN-01", "ENVASE PARA GALON"],
+  ["ENVASES", "ENVASES 1KG GARRAFA"],
+  ["MP6-ES", "ESPONJA ROJA V. CON CARGA DESILICON 10MM"],
+  ["MP6-ESP", "ESPUMA DE POLIURETANO 3MM*50MT"],
+  ["MP6-ESD", "ESPUMA DIAMANTADA 3MM"],
+  ["MP6-EPU", "ESPUMIN BLANCO 2MM"],
+  ["MP6-ESG", "ESPUMIN GALLETA 2 MM"],
+  ["MP6-EST", "ESTIRENO BLANCO C-15 122x152CM"],
+  ["MA-ES-BL-01-PZ", "ESTOPA BLANCA SUPER EXTRA"],
+  ["CU-TF-REP-04-PZ", "ESTUCHE 50 CUCHILLAS SK4 18 MM P CUTTER"],
+  ["CU-TF-REP-05-PZ", "ESTUCHE CON 10 CUCHILLAS SK2 de 18 mm"],
+  ["ET-HU-ET-01", "ETIQUETA DE CARTULINA CON RONDANA"],
+  ["MP1-0000021-EXP", "EVA"],
+  ["MP3.-0734004-P", "FILM C-5/6 BLANCO"],
+  ["MP3.-0923508-P", "FILM C-5/6 TRANSPARENTE"],
+  ["MP9-FJ", "FLEJE NATURAL DE 1/2\" SEMIAUTO"],
+  ["FLEJE", "FLEJE NATURAL PARA MAQUINA DEL 1/2\" CAL"],
+  ["MP4-8107-S", "FLEXIVIN INFLABLE C-8 NARANJA FLUORESCEN"],
+  ["MP4-8052-S", "FLEXIVIN INFLABLE CHAROL C-8 AMARILLO"],
+  ["MP4-8050-S", "FLEXIVIN INFLABLE CHAROL C-8 AZUL"],
+  ["MP4-8054-S", "FLEXIVIN INFLABLE CHAROL C-8 ROJO"],
+  ["MP4-8051-S", "FLEXIVIN INFLABLE CHAROL C-8 TRANSPARENT"],
+  ["MP4-8053-S", "FLEXIVIN INFLABLE CHAROL C-8 VERDE"],
+  ["FL-SI-MA-01", "FLEXIVIN INFLABLE MATE C 7 1.41 Negro"],
+  ["SI-FI-MA-01", "FLEXIVIN INFLABLE MATE C 7 NEGRO"],
+  ["MP4-8108-S", "FLEXIVIN INFLABLE MATE C-7 AZUL REY"],
+  ["MP4-8103-S", "FLEXIVIN INFLABLE MATE C-8 AMARILO"],
+  ["MP4-8104-S", "FLEXIVIN INFLABLE MATE C-8 AZUL"],
+  ["MP4-8101-S", "FLEXIVIN INFLABLE MATE C-8 AZUL REY"],
+  ["MP4-8106-S", "FLEXIVIN INFLABLE MATE C-8 BLANCO"],
+  ["MP4-8102-S", "FLEXIVIN INFLABLE MATE C-8 NEGRO"],
+  ["MP4-8100-S", "FLEXIVIN INFLABLE MATE C-8 ROJO"],
+  ["MP4-8105-S", "FLEXIVIN INFLABLE MATE C-8 VERDE"],
+  ["SINT-FLEXI - C10", "FLEXIVIN MATE NEGRO CALIBRE 10"],
+  ["MP4-8004-S", "FLEXIVIN SEDA C-10 AZUL REY"],
+  ["MP4-8005-S", "FLEXIVIN SEDA C-10 AMARILLO"],
+  ["MP4-8008-S", "FLEXIVIN SEDA C-10 AZUL CIELO"],
+  ["MP4-8000-S", "FLEXIVIN SEDA C-10 AZUL MARINO"],
+  ["MP4-8001-S", "FLEXIVIN SEDA C-10 BLANCO"],
+  ["MP4-8010-S", "FLEXIVIN SEDA C-10 CAFÉ"],
+  ["MP4-8003-S", "FLEXIVIN SEDA C-10 GRIS"],
+  ["MP4-8002-S", "FLEXIVIN SEDA C-10 HUESO"],
+  ["MP4-8007-S", "FLEXIVIN SEDA C-10 NEGRO"],
+  ["MP4-8006-S", "FLEXIVIN SEDA C-10 ROJO"],
+  ["MP4-8011-S", "FLEXIVIN SEDA C-10 ROSA"],
+  ["MP4-8009-S", "FLEXIVIN SEDA C-10 VERDE"],
+  ["MANT-PL-49", "FLEXOMETRO 3 M CINTA 13 MM"],
+  ["MP6-FO", "FOAMI 2MM MEDIDA DE 150x70CM"],
+  ["FO-NI-01-PZ", "FOMI LAM 3 LISO COLOR CLARO"],
+  ["MP4-9003-S", "FORRO ALASKA BLANCO CON SOPORTE"],
+  ["TE-IM-FC-05", "FORRO CARTERA 110 GRS BLANCO"],
+  ["TE-IM-FC-15", "FORRO CARTERA 70 GR GRIS MEDIO"],
+  ["TE-IM-FC-01", "FORRO CARTERA 70 GRS 160 CM VARIOS COLOR"],
+  ["TE-IM-FC-04", "FORRO CARTERA 70G 160CM AZUL"],
+  ["TE-IM-FC-09", "FORRO CARTERA 70G 160CM AZUL CIELO"],
+  ["TE-IM-FC-11", "FORRO CARTERA 70G 160CM AZUL MARINO"],
+  ["TE-IM-FC-08", "FORRO CARTERA 70G 160CM FUCSIA"],
+  ["TE-IM-FC-14", "FORRO CARTERA 70G 160CM MANDARINA"],
+  ["TE-IM-FC-02", "FORRO CARTERA 70G 160CM MORADO"],
+  ["TE-IM-FC-12", "FORRO CARTERA 70G 160CM ROJO"],
+  ["TE-IM-FC-03", "FORRO CARTERA 70G 160CM ROSA"],
+  ["TE-IM-FC-07", "FORRO CARTERA 70G 160CM ROSA PASTEL"],
+  ["TE-IM-FC-13", "FORRO CARTERA 70G 160CM VERDE BANDERA"],
+  ["TE-IM-FC-10", "FORRO CARTERA 70G 160CM VERDE MANZANA"],
+  ["TE-IM-FC-06", "FORRO CARTERA 70G AZUL PANAM"],
+  ["TE-RO-FC-01", "FORRO CARTERA 70GR AZUL REY"],
+  ["FR-00101-RO", "FORRO CARTERA BLANCO"],
+  ["11151511", "FORRO CARTERA COLORES"],
+  ["FR-CA-N-001", "FORRO CARTERA NEGRO"],
+  ["FR-00100-R", "FORRO CARTERA ROJO"],
+  ["FUN-01", "FUNDAFLEX C. 6"],
+  ["FU-001-PL", "FUNDAFLEX PLASTIFICADO"],
+  ["CO-CD-AC-01", "GALON ACEITE MAQUINA DE COSER"],
+  ["MP5-122", "GANCHO BLANCO TIPO PATO"],
+  ["MP5-124", "GANCHO DE PLÁSTICO INYECTADO"],
+  ["GA-PM-GA-01", "GANCHO MUESTRARIO BASE #3 BLANCO c/5000"],
+  ["GA-PM-GA-02", "GANCHO MUESTRARIO CON BASE #3 BCO C/500"],
+  ["MP5-140", "GANCHO NEGRO TIPO PATO"],
+  ["MP5-123", "GANCHO ROSA TIPO PATO"],
+  ["ENVASES1", "GARRAFA DE 50 KGS"],
+  ["ENVASES2", "GARRAFON 5 KG"],
+  ["AGUA 20 LT", "GARRAFONES DE AGUA"],
+  ["GEL-ANT-001", "GEL ANTIBACTERIAL"],
+  ["MP8-GCR-KG", "GEL CRYSTAL"],
+  ["MP8-GER-KG", "GERMABEN II"],
+  ["MP5-134", "GI BLANCO R3290MM 8CM*45.72 MT"],
+  ["MP8-GLI-KG", "GLICERINA"],
+  ["MP3.-1004102-P", "GRANITO C-10 AMARILLO"],
+  ["MP3.-1004101-P", "GRANITO C-10 AZUL CIELO"],
+  ["MP3.-1001403-P", "GRANITO C-10 AZUL MARINO"],
+  ["MP3.-1004104-P", "GRANITO C-10 AZUL MONARCA"],
+  ["MP3.-1004001-P", "GRANITO C-10 AZUL OCEANO"],
+  ["MP3.-1004100-P", "GRANITO C-10 AZUL REY"],
+  ["MP3.-1004111-P", "GRANITO C-10 BEIGE ARENAL"],
+  ["MP3.-1008002-P", "GRANITO C-10 BLANCO"],
+  ["MP3.-1004112-P", "GRANITO C-10 CAFÉ MADERA"],
+  ["MP3.-1004113-P", "GRANITO C-10 GRIS"],
+  ["MP3.-1004106-P", "GRANITO C-10 NEGRO"],
+  ["MP3.-1004107-P", "GRANITO C-10 ROJO"],
+  ["MP3.-1004103-P", "GRANITO C-10 ROSA"],
+  ["MP3.-1004108-P", "GRANITO C-10 VERDE BANDERA"],
+  ["MP3.-1004109-P", "GRANITO C-10 VERDE FOLLAJE"],
+  ["MP3.-1004110-P", "GRANITO C-10 VERDE JARDIN"],
+  ["MP3.-1077850-P", "GRANITO C-10 VERDE OSCURO"],
+  ["MP3.-0964504-P", "GRANITO C-8 AZUL MARINO"],
+  ["MP3.-0964505-P", "GRANITO C-8 BLANCO"],
+  ["MP3.-1311121-P", "GRANITO C-8 MORADO 254C"],
+  ["MP3.-0964503-P", "GRANITO C-8 NEGRO"],
+  ["MP3-131112-P", "GRANITO C-8 ROJO"],
+  ["MP3.-0964506-P", "GRANITO C-8 VERDE"],
+  ["MP3.-131112*-P", "GRANITO C-9 AMARILLO 115C"],
+  ["MP5-125", "GRAPA DE SOBRE METÁLICO"],
+  ["56111905", "GRAPA PARA SOBRE CHICA"],
+  ["46181541", "GUANTE USO DOMESTICO"],
+  ["PC-BR-BR-03", "Hembra Broche Pañalero L16 (Jiber)"],
+  ["HI-CD-KI-09", "HILO AGUACATE 40/2 079 KINGTEX"],
+  ["HI-CD-KI-06", "HILO AZUL CAPRI 40/2 055 KINGTEX"],
+  ["HI-CD-KI-10", "HILO AZUL CIELO 40/2 289 KINGTEX"],
+  ["KINTEX 40/2", "HILO AZUL MARINO"],
+  ["HI-CD-KI-04", "HILO AZUL REY 40/2 241 KINGTEX"],
+  ["HI-CD-KI-17", "HILO BEIGE ARENA 40/2 167 KINGTEX"],
+  ["KINTEX WHITE", "HILO BLANCO KINGTEX"],
+  ["HI-CD-KI-15", "HILO CHABACANO 40/2 033 KINGTEX"],
+  ["HI-CD-KI-07", "HILO CLAVEL 40/2 003 KINGTEX"],
+  ["HIL-001-RMT", "HILO COLOR ROJO"],
+  ["KINTEX-GR-MP", "HILO GRIS 40/2 262"],
+  ["HI-CD-KI-02", "HILO GRIS PERLA 40/2 206 KINGTEX"],
+  ["HI-CD-KI-18", "HILO HUESO POLIESTER 40/2 097 KINGTEX"],
+  ["HI-CD-KI-11", "HILO MARFIL 40/2 164"],
+  ["HI-CD-KI-12", "HILO MORADO CLARO 40/2 018 KINGTEX"],
+  ["HI-TR-KI-01", "HILO MORADO KINGTEX"],
+  ["KINTEX BLACK", "HILO NEGRO"],
+  ["HI-CD-KI-16", "HILO ROJO 40/2 011 KINGTEX"],
+  ["HI-CD-KI-08", "HILO ROSA MEXICANO 40/2 220 KINGTEX"],
+  ["HI-CD-KI-05", "HILO ROSA PASTEL 40/2 002 KINGTEX"],
+  ["HI-CD-KI-01", "HILO TIFANY 40/2 284 KINGTEX"],
+  ["HI-CD-KI-13", "HILO TURQUESA 40/2 059 KINGTEX"],
+  ["HIL-002-VMT", "HILO VERDE"],
+  ["HI-CD-KI-03", "HILO VERDE 40/2 1459 KINGTEX"],
+  ["HI-CD-KI-14", "HILO VERDE BANDERA 40/2 081 KINGTEX"],
+  ["MP7-HR3", "HULE PARA RACERO 3*0.8 CM"],
+  ["MP7-HR5", "HULE PARA RACERO 5*0.9 CM"],
+  ["TE-GA-PO-01", "IMPA326 NEGRO POLIESTER PVC"],
+  ["PR-AL-01-PZ", "IMPRESION A 1X1 TINTA EN PAPEL BOND MEDI"],
+  ["HU-IM-LU-01", "IMPRESION DIGITAL EN TABLOIDE LULO"],
+  ["47131501", "JERGA SARGADA/FRANELA 1 MT X60 CM"],
+  ["OJ-NE-TR-01", "K-20 TROQUEL OJILLO"],
+  ["CA-KI-NE-1-PZ", "KINGTEX 40/2 BLACK"],
+  ["PI-JC-PV-02", "LACA TRUFILM BRILLANTE (420 ML)"],
+  ["MP12-POLI-PZ", "LAMINAS DE PEAD NATURAL CALIBRE 0.030\""],
+  ["SE-GR-LIQ", "LIQUIDO ESPECIAL PARA QUITAR PEGAMENTO"],
+  ["PC-BR-BR-04", "Macho Broche Pañalero L16 (Jiber)"],
+  ["CO-FI-MA-002", "MACRAME DE ALGODON GRIS"],
+  ["CO-FI-MA-001", "MACRAME DE ALGODON NEGRO"],
+  ["60123701", "MACRAME DE COLORES"],
+  ["PIO-MT-001", "MADEJA DE PIOLA"],
+  ["IM-MA-MA-01", "MALLA NYLON"],
+  ["IM-MA-MA-02", "MALLA PVC"],
+  ["SE-SE-MA-02", "MALLA T-120 x 1.60 DE ANCHO AMARILLA"],
+  ["SE-SE-MA-04", "MALLA T-62 X 1.58 DE ANCHO BCA"],
+  ["SE-SE-MA-05", "MALLA T-77 X 1.60 DE ANCHO BCA"],
+  ["SE-SE-MA-01", "MALLA T-90 x 1.6 DE ANCHO AMARILLA"],
+  ["MA-IL-MA-01-PZ", "MANGUERA INDUSTRIAL 1/8 \" 100 MT"],
+  ["MP5-130", "MANGUERA NATURAL CH. PX 3/8"],
+  ["MP5-131", "MANGUERA NATURAL GDE. PX 5/16"],
+  ["MP5-129", "MANGUERA PARA ASA DE BOLSA"],
+  ["MAR-C-001", "MARNA 3.5"],
+  ["CI-JO-DA-MA-01", "MASKING TAPE 12MMX50M"],
+  ["MP9-MSK", "MASKING TAPE 24MMx50MTS"],
+  ["CI-AR-MA-02", "MASKING TUK 18x50 111"],
+  ["VI-ENV-01", "MASTERPACK ESTIBABLE 20 LITROS"],
+  ["PM-AR-AR-01", "MEDIA ARGOLLA METALICA 19mm NIQUEL"],
+  ["PM-AR-AR-02", "MEDIA ARGOLLA METALICA 19mm NIQUEL CIENT"],
+  ["MP4-11001-S", "MICA SOFT C-35 AZUL"],
+  ["MP4-11000-S", "MICA SOFT C-35 ROJO"],
+  ["MP8-TP30-PZ", "MINITAPA CUADRADA 15/415 NATURAL"],
+  ["OCE-CR-3", "Ocean cristal calibre 3"],
+  ["OCE-CR-4", "Ocean cristal calibre 4"],
+  ["OCE-CR-6", "Ocean cristal calibre 6"],
+  ["MP5-100", "OJALETE PLÁSTICO 6MM (OJILLO 1/4\")"],
+  ["53141508", "OJILLO K 145 NIKELADO"],
+  ["MP5-126", "OJILLO K-19 ACERO NIQUEL"],
+  ["OJ-NE-NI-01", "OJILLO K-20 RIO FRIO NIQ C/1000 PZ NE"],
+  ["OJ-PM-NI-01", "OJILLO METALICO MILANO 11-Z"],
+  ["SIN-SE-AN-CH-01-", "P Semirigido Antiblock Charol C 7/8 1.41"],
+  ["MP4-9001-S", "PAD SEDA C-40 TRANSPARENTE"],
+  ["MP1-0000022-S", "PALSTILUX CRISTAL VIOLETA/PLATA C-10"],
+  ["PA-PA-CA--PZ", "PAPEL CAPLE REVERSO CAFE 60 x 90 CMS"],
+  ["PA-GE-EN-01", "PAPEL CL-02 de 100gr de 70cm x 200 mts"],
+  ["MP6-PC", "PAPEL COUCHE C/ADHESIVO 51x66"],
+  ["JO-PA-KR-01", "PAPEL KRAFT"],
+  ["60121124", "PAPEL KRFT 60 GRMS X 45 CM"],
+  ["MP8-PAR-KG", "PARAGON II"],
+  ["32131003", "PASTILLA QUIMITEC 80 GR"],
+  ["GR-PEL-POL-01-PZ", "PELICULA ELASTICA PARA ENVOLTURA"],
+  ["PO-RP-PE-01", "PELICULA PLANA DE POLIETILENO NATURAL"],
+  ["MP9-PL", "Película plástica POLYSTRECH"],
+  ["PE-PA-MA-01", "PELICULA POLIESTER MYLAR .005 KILO"],
+  ["MP8-PER-KG", "PERLAS DE HIDROGEL"],
+  ["TR-PT-MI-01-PZ", "PERNO RANURADO 5/32 X 1 1/2"],
+  ["PET-G-01", "PET G"],
+  ["CA-MF-01", "PIAS CON MONOFILAMENTO No. 008"],
+  ["CO-CD-PI-01-PZ", "PIE DE TEFLON C/CANAL IZQ 1/8"],
+  ["CO-CD-PI-02-PZ", "PIE DE TEFLON C/CANAL IZQ.3/16"],
+  ["CO-CD-PI-PZ", "PIE NORMAL CERRADO DE TEFLON"],
+  ["14111703", "PIEZA DE TOALLA INTERDOBLADA SANITAS"],
+  ["14111704", "PIEZAS DE PAPEL HIGIENICO DE 200 MTS"],
+  ["PI-JC-PV-01", "PINTURA VEGETAL MORADA 10 ML"],
+  ["PL-AP-ES-01", "PLACA ESTIRENO BLANCO C-80 1.20 X 1.52"],
+  ["FOT-PL-MN-01-PZ", "PLACA MAGNESIO 4M/M 13X6"],
+  ["MP3-03-OC3", "PLASTILUK CRISTAL C 3"],
+  ["SIN-PL-CH-01-PZ", "Plastilux Charol C 8 1.41 Plateado"],
+  ["SIN-PL-CH-03", "PLASTILUX CHAROL PLATEADO C 10 1.41"],
+  ["MP4-7018-S", "PLASTILUX CHAROL VIOLETA TRANSPARENTE C8"],
+  ["MP1-0000012-S", "PLASTILUX COLORES C-8 AZUL"],
+  ["MP1-0000010-S", "PLASTILUX COLORES C-8 HUMO"],
+  ["MP1-0000011-S", "PLASTILUX COLORES C-8 MORADO"],
+  ["MP1-0000015-S", "PLASTILUX COLORES C-8 NARANJA"],
+  ["MP1-0000014-S", "PLASTILUX COLORES C-8 ROSA"],
+  ["MP1-0000013-S", "PLASTILUX COLORES C-8 VERDE 4150"],
+  ["MP1-0000009-S", "PLASTILUX COLORES C-8 VERDE487"],
+  ["MP1-0000005-S", "PLASTILUX CRISTAL PLATEADO C-10"],
+  ["MP1-0000006-S", "PLASTILUX CRISTAL PLATEADO C-12"],
+  ["MP1-0000007-S", "PLASTILUX CRISTAL PLATEADO C-14"],
+  ["MP1-0000008-S", "PLASTILUX CRISTAL PLATEADO C-16"],
+  ["MP1-0000001-S", "PLASTILUX CRISTAL PLATEADO C-2.5"],
+  ["MP1-0000002-S", "PLASTILUX CRISTAL PLATEADO C-4"],
+  ["MP1-0000003-S", "PLASTILUX CRISTAL PLATEADO C-6"],
+  ["MP1-0000004-S", "PLASTILUX CRISTAL PLATEADO C-8"],
+  ["MP4-7011-S", "PLASTILUX SEDA C-10 AMARILLO"],
+  ["MP4-7013-S", "PLASTILUX SEDA C-10 AQUA"],
+  ["MP4-7012-S", "PLASTILUX SEDA C-10 AZUL"],
+  ["MP4-7014-S", "PLASTILUX SEDA C-10 NARANJA"],
+  ["MP4-7016-S", "PLASTILUX SEDA C-10 ROJO"],
+  ["MP4-7017-S", "PLASTILUX SEDA C-10 ROSA"],
+  ["MP4-7010-S", "PLASTILUX SEDA C-10 TRANSPARENTE"],
+  ["MP4-7015-S", "PLASTILUX SEDA C-10 VERDE"],
+  ["PL-SI-SR-01", "PLASTILUX SEMI-RÍGIDO ANTIBLOCK C 5/6"],
+  ["MP2-0000023-S", "PLASTILUX SEMI-RÍGIDO C-10"],
+  ["MP2-0000020-S", "PLASTILUX SEMI-RÍGIDO C-4/5"],
+  ["MP2-0000021-S", "PLASTILUX SEMI-RÍGIDO C-5/6"],
+  ["MP2-0000022-S", "PLASTILUX SEMI-RÍGIDO C-7/8"],
+  ["MP4-10000-S", "PLASTILUX ZAPATILLA C-20"],
+  ["MP4-10001-S", "PLASTILUX ZAPATILLA C-30"],
+  ["MP4-10002-S", "PLASTILUX ZAPATILLA C-40"],
+  ["MP4-10003-S", "PLASTILUX ZAPATILLA C-80"],
+  ["MA-PL-01-PZ", "PLECAS DE ACERO CON FILO"],
+  ["TE-RO-PO-02", "POLIESTER 600 AZUL MARINO"],
+  ["TE-RO-PO-03", "POLIESTER 600 GRIS MEDIO"],
+  ["TE-RO-PO-01", "POLIESTER 600 GRIS PLATA"],
+  ["PO-SA-PI-02", "POLIETILENO 150 CMS ESP 200 PIGMENTO BCO"],
+  ["PO-SA-PI-04", "POLIETILENO 150 CMS ESP200 PIGMENTO AZUL"],
+  ["PO-SA-PI-03", "POLIETILENO 150 CMS ESP200 PIGMENTO ROJO"],
+  ["MP11-POLI-KG", "POLIETILENO NATURAL ESP. 190"],
+  ["PO-FI-PO-01", "POLIOLEFINA DE 8 PULGADAS"],
+  ["PL-POL-01-PZ", "POLIPROPILENO PLACA 6.4MX6.10"],
+  ["TE-IM-PO-09", "POLY 600 BEIGE"],
+  ["TE-IM-PO-06", "POLY 600X300 100% POLIESTER BLANCO"],
+  ["TE-IM-PO-07", "POLY 600X300 100% POLIESTER NEGRO"],
+  ["TE-IM-PO-03", "POLY 600X300 AMARILLO CANARIO"],
+  ["IMP-POL-01-PZ", "POLY 600X600 PU 100% POLIESTER"],
+  ["TE-SR-PO-01", "POLYESTER ULOG 700 NEGRO"],
+  ["MP6-P1475V", "PRESBOARD IMPORTADO VERDE 52*90 CM"],
+  ["CO-PR-02-PZ", "PRESERVALAR DMP 500 GMS ENV/INC"],
+  ["CO-PR-01-PZ", "PRESERVALAR PHDG 25 KG ENV-INC"],
+  ["CO-PR-03-PZ", "PRESERVALAR PHDG 500 GMS E/I"],
+  ["CO-PR-04-PZ", "PRESERVALAR PHDG ENV/CLIENTE"],
+  ["3-EMC-CIM", "PROTECTOR COLCHON CRISTAL"],
+  ["BLAN-PROT", "PROTECTOR COLCHON CRISTAL"],
+  ["MP4-9004-S", "PVC RIGIDO 12"],
+  ["PL-RI-RI-01", "PVC RIGIDO C 10"],
+  ["EM-CA-RA-01", "RAFIA"],
+  ["GFY-RAF-08", "RAFIA CAL 8"],
+  ["EM-FI-RA-01", "RAFIA DE 1125 M BLANCO C 3.8 G/M"],
+  ["AL-CON-01-PZ", "RAFIA NATURAL DEL No. 4"],
+  ["PM-RE-RE-01", "REMACHE RAPIDO MILANO #36 NIQUEL"],
+  ["PM-RE-RE-02", "REMACHE RAPIDO MILANO #36 NIQUEL c/500pz"],
+  ["MP6-RE3", "RESISTOL 30-80"],
+  ["MP6-RE5", "RESISTOL 5000"],
+  ["BO-SE-RO-01", "ROJO BOLSA KG TINBOL006KG"],
+  ["PO-SA-NA-01", "ROLLO DE POLIETILENO BAJA DENSIDAD29 CM"],
+  ["PO-SA-NA-06", "ROLLO DE POLIETILENO DE 28CM C 115"],
+  ["PO-SA-NA-05", "ROLLO DE POLIETILENO IMPRESO VOTA"],
+  ["RO-PO-NA-01", "ROLLO DE POLIETILENO NATURAL"],
+  ["EM-JD-FL-01", "ROLLO FLEJE 1/2\" P/MAQ"],
+  ["PO-SA-NA-04", "ROLLO NATURAL SIN IMPRESION 70PBCO"],
+  ["EMP-CA-PE-01", "ROLLO PELICULA MSTRECH 18-80-1000"],
+  ["PO-SA-NA-02", "ROLLO POLIETILENO 40CM PIGMENTOS VERDES"],
+  ["PO-SA-NA-03", "ROLLO POLIETILENO BAJA DENSIDAD ESP 190"],
+  ["MP10-POLI-KG", "ROLLO POLIETILENO DE 28 CM C 115"],
+  ["PO-SA-PI-01", "ROLLO POLIETILENO PIGMENTADO VERDE AGUA"],
+  ["RO-TL-MT-PZ", "ROLLO TELA NON WOVEN IMPRESA Y LAMINADA"],
+  ["TR-MU-RO-04-PZ", "RONDANA DE PRESION GALV 1/4"],
+  ["TR-MU-RO-03-PZ", "RONDANA PLANA GALVANIZADA 1/4"],
+  ["MP4-9002-S", "SATINADO ANTIESTATICO SEDA C-4/5"],
+  ["SAT-002", "SATINADO LLUVIA SEDA C-8 TRANSPARENTE"],
+  ["MP4-3000-S", "SATINADO LLUVIA C-3/4 AMARILLO"],
+  ["MP4-3004-S", "SATINADO LLUVIA C-3/4 NARANJA"],
+  ["MP4-3003-S", "SATINADO LLUVIA C-3/4 ROSA"],
+  ["MP4-3001-S", "SATINADO LLUVIA C-3/4 TRANSPARARENTE"],
+  ["MP4-3002-S", "SATINADO LLUVIA C-3/4 VERDE"],
+  ["MP4-3005-S", "SATINADO LLUVIA C-4 TRANSPARENTE"],
+  ["MP4-3006-S", "SATINADO LLUVIA C-6 AMARILLO"],
+  ["MP4-3011-S", "SATINADO LLUVIA C-6 AZUL"],
+  ["MP4-3010-S", "SATINADO LLUVIA C-6 NARANJA"],
+  ["MP4-3009-S", "SATINADO LLUVIA C-6 ROSA"],
+  ["MP4-3007-S", "SATINADO LLUVIA C-6 TRANSPARENTE"],
+  ["MP4-3008-S", "SATINADO LLUVIA C-6 VERDE"],
+  ["SAT-001", "SATINADO LLUVIA SEDA C-6 TRASPARENTE"],
+  ["SU-SA-01", "SATINADO SEDA C 5 TRANSPARENTE"],
+  ["MP4-2006-S", "SATINADO SEDA C-4 AMARILLO"],
+  ["MP4-2000-S", "SATINADO SEDA C-4 AZUL MARINO"],
+  ["MP4-2005-S", "SATINADO SEDA C-4 AZUL REY"],
+  ["MP4-2002-S", "SATINADO SEDA C-4 BLANCO"],
+  ["MP4-2001-S", "SATINADO SEDA C-4 NARANJA"],
+  ["MP4-2004-S", "SATINADO SEDA C-4 NEGRO"],
+  ["MP4-2003-S", "SATINADO SEDA C-4 PLATA"],
+  ["MP4-2008-S", "SATINADO SEDA C-4 ROJO"],
+  ["MP4-2009-S", "SATINADO SEDA C-4 TRANSPARENTE"],
+  ["MP4-2007-S", "SATINADO SEDA C-4 VERDE MILITAR"],
+  ["MP4-2022-S", "SATINADO SEDA C-6 AMARILLO"],
+  ["MP4-2016-S", "SATINADO SEDA C-6 AZUL CIELO"],
+  ["MP4-2012-S", "SATINADO SEDA C-6 AZUL MARINO"],
+  ["MP4-2019-S", "SATINADO SEDA C-6 AZUL REY"],
+  ["MP4-2014-S", "SATINADO SEDA C-6 BLANCO"],
+  ["MP4-2020-S", "SATINADO SEDA C-6 CAFÉ"],
+  ["MP4-2024-S", "SATINADO SEDA C-6 FIUSHA"],
+  ["MP4-2015-S", "SATINADO SEDA C-6 HUESO"],
+  ["MP4-2013-S", "SATINADO SEDA C-6 NARANJA"],
+  ["MP4-2018-S", "SATINADO SEDA C-6 NEGRO"],
+  ["MP4-2017-S", "SATINADO SEDA C-6 PLATA"],
+  ["MP4-2025-S", "SATINADO SEDA C-6 ROJO"],
+  ["MP4-2011-S", "SATINADO SEDA C-6 ROSA"],
+  ["SA-SI-SE-01", "SATINADO SEDA C-6 TRANSLUCIDO (001)"],
+  ["MP4-2010-S", "SATINADO SEDA C-6 VERDE"],
+  ["MP4-2023-S", "SATINADO SEDA C-6 VERDE MILITAR"],
+  ["MP4-2021-S", "SATINADO SEDA C-6 VINO"],
+  ["MP4-2030-S", "SATINADO SEDA C-8 NEGRO"],
+  ["MP4-2033-S", "SATINADO SEDA C-8 AMARILLO"],
+  ["MP4-2027-S", "SATINADO SEDA C-8 AZUL MARINO"],
+  ["MP4-2031-S", "SATINADO SEDA C-8 AZUL REY"],
+  ["MP4-2026-S", "SATINADO SEDA C-8 BLANCO"],
+  ["MP4-2028-S", "SATINADO SEDA C-8 HUESO"],
+  ["MP4-2029-S", "SATINADO SEDA C-8 PLATA"],
+  ["MP4-2034-S", "SATINADO SEDA C-8 VERDE MILITAR"],
+  ["MP4-2032-S", "SATINADO SEDA C-8 VINO"],
+  ["SAT-SEDA", "SATINADO SEDA CALIBRE 6"],
+  ["SI-SA-SE-01", "SATINADO SEDA TRANSPARENTE C 8"],
+  ["MP4-9000-S", "SEDA GEL C-12 TRANSPARENTE"],
+  ["SE-SI-GE-2281", "SEDA GEL SONORA C-10 COLOR HUMO CVE 2281"],
+  ["MP4-7002-S", "SELLOPLAST CHAROL C-8 AZUL CIELO"],
+  ["MP4-7005-S", "SELLOPLAST CHAROL C-8 AZUL REY"],
+  ["MP4-7000-S", "SELLOPLAST CHAROL C-8 BLANCO"],
+  ["MP4-7001-S", "SELLOPLAST CHAROL C-8 NEGRO"],
+  ["MP4-7004-S", "SELLOPLAST CHAROL C-8 ROJO"],
+  ["MP4-7003-S", "SELLOPLAST CHAROL C-8 VERDE"],
+  ["MP4-6004-S", "SELLOPLAST SONORA C-10 AMARILLO"],
+  ["MP4-6003-S", "SELLOPLAST SONORA C-10 AZUL REY"],
+  ["MP4-6005-S", "SELLOPLAST SONORA C-10 BEIGE"],
+  ["MP4-6001-S", "SELLOPLAST SONORA C-10 BLANCO"],
+  ["MP4-6007-S", "SELLOPLAST SONORA C-10 CAFÉ"],
+  ["MP4-6008-S", "SELLOPLAST SONORA C-10 NARANJA"],
+  ["MP4-6002-S", "SELLOPLAST SONORA C-10 NEGRO"],
+  ["MP4-6000-S", "SELLOPLAST SONORA C-10 ROJO"],
+  ["MP4-6006-S", "SELLOPLAST SONORA C-10 VERDE"],
+  ["MP4-6009-S", "SELLOPLAST SONORA C-10 VINO"],
+  ["MP4-4001-S", "SELLOPLAST SONORA C-6 BLANCO"],
+  ["MP4-4002-S", "SELLOPLAST SONORA C-6 NEGRO"],
+  ["MP4-4000-S", "SELLOPLAST SONORA C-6 TRANSPARENTE"],
+  ["MP4-5006-S", "SELLOPLAST SONORA C-8 AMARILLO"],
+  ["MP4-5005-S", "SELLOPLAST SONORA C-8 AZUL MARINO"],
+  ["MP4-5004-S", "SELLOPLAST SONORA C-8 AZUL REY"],
+  ["MP4-5002-S", "SELLOPLAST SONORA C-8 BLANCO"],
+  ["MP4-5003-S", "SELLOPLAST SONORA C-8 NEGRO"],
+  ["MP4-5001-S", "SELLOPLAST SONORA C-8 ROJO"],
+  ["MP4-5000-S", "SELLOPLAST SONORA C-8 TRANSPARTE"],
+  ["MP4-5007-S", "SELLOPLAST SONORA MORADO (852) C8"],
+  ["MP2-0587006-P", "SEMI-RÍGIDO TRANSPARENTE C-10"],
+  ["MP2-0587501-P", "SEMI-RÍGIDO TRANSPARENTE C-12 PLAMI"],
+  ["MP2-0588004-P", "SEMI-RÍGIDO TRANSPARENTE C-14"],
+  ["MP2-0590505-P", "SEMI-RÍGIDO TRANSPARENTE C-3/4"],
+  ["MP2-0592006-P", "SEMI-RÍGIDO TRANSPARENTE C-4/5"],
+  ["MP2-0595009-P", "SEMI-RÍGIDO TRANSPARENTE C-5/6"],
+  ["MP2-0581009-P", "SEMI-RÍGIDO TRANSPARENTE C-7"],
+  ["SO-DG-SE-PZ", "SENSIBLIZADOR PARA EMULSION CP-2 (3.5 GM"],
+  ["MP7-SEP", "SERISOL PLUS"],
+  ["HI-SH-01-PZ", "SHAMPOO PARA MANOS CON AROMA CEREZA"],
+  ["SILIFENIX", "SILIFENIX SILICON SPRAY 400 GR"],
+  ["MP9-L-042", "SLEEVES PACKING BOXES LARGE"],
+  ["MP9-L-041", "SLEEVES PACKING BOXES STANDARD"],
+  ["SE-SM-SO-01", "SOLV. DESMANCHADOR DE PLASTICO M-82"],
+  ["MP7-PRE", "SOLVENTE PREGASOL"],
+  ["SE-GR-SO-01", "SOLVENTE VINILICO 44-180"],
+  ["MP3.-2733947-P", "STELAR C-5 ALUMINIO METÁLICO"],
+  ["MP3.-2733954-P", "STELAR C-5 AMARILLO"],
+  ["MP3.-2733970-P", "STELAR C-5 AZUL CIELO"],
+  ["MP3.-2733988-P", "STELAR C-5 AZUL MARINO"],
+  ["MP3.-2733996-P", "STELAR C-5 AZUL REY"],
+  ["MP3.-2734002-P", "STELAR C-5 BLANCO"],
+  ["MP3.-2734051-P", "STELAR C-5 NEGRO"],
+  ["MP3.-2734069-P", "STELAR C-5 ROJO"],
+  ["MP3.-2734077-P", "STELAR C-5 ROSA"],
+  ["TAR-001", "TARIMA DE PLASTICO 1X1.20"],
+  ["AL-SO-TA-01-PZ", "TARIMA PARA EXPORTACION EXP1010 Abierta"],
+  ["MP-HM-TA-PZ", "TARJETAS PARA RISTRA IMPRESAS"],
+  ["GE-GF-CA-PZ", "TC CARBOMER 340 B 500 GMS E/I"],
+  ["ASP-TJ-02-PZ", "TEJIDO DE BUCLE CON RECUBRIMIENTO DE POL"],
+  ["ASP-TJ-01-PZ", "TEJIDO DE BUCLE CON RECUBRIMIENTO DE POL"],
+  ["AL-SA-TE-01-PZ", "TELA DE FIBRA SINTETICA IMP. POLYURETHAN"],
+  ["MP6-TEF-03", "TELA FIBRIFLON DE 0.003\" S/A"],
+  ["MP6-TEF-05", "TELA FIBRIFLON DE 0.005\" S/A"],
+  ["POL-EL-TE-01-PZ", "TELA POLAR LISO"],
+  ["TELA POLI", "TELA POLICANASTO"],
+  ["TE-IM-PO-05", "TELA POLY 600 AZUL MARINO"],
+  ["TE-IM-PO-04", "TELA POLY 600 GRIS PLATA (PERLA"],
+  ["TE-IM-PO-02", "TELA POLY 700 GRIS MEDIO RAYADO"],
+  ["TE-IM-PO-08", "TELA POLY 700 GRIS OBSCURO RALLADA"],
+  ["TE-IM-PO-01", "TELA POLY 700 RAYADO NEGRO"],
+  ["TE-IM-SI-01", "TELA SILVER ROJO"],
+  ["MANT-PL-94", "TELA TEFLON AESA (3MIL)"],
+  ["SOLVENTES", "THINER STANDAR"],
+  ["CO-CD-TI-PZ", "TIJERA MULTIUSO 8.5 SOLO"],
+  ["MP7-1025", "TINTA AMARILLO CLARO UNIPLAST 1/4 KG"],
+  ["BE-UNI-TI-01-PZ", "TINTA AZUL CIAN POLICROMIA"],
+  ["TI-SE-BO-02", "TINTA AZUL OSCURO BOLSA CUARTO"],
+  ["TI-SE-BO-03", "TINTA AZUL ULTRA BOLSA CUARTO"],
+  ["SA-TI-PP-03", "TINTA AZUL ULTRA PP NON WOVEN"],
+  ["SA-TI-PP-01", "TINTA BLANCO PP NON WOVEN SP"],
+  ["BE-UNI-TI-01", "TINTA MAGENTA SP UNIPLAST PSQ43165 1"],
+  ["SA-TI-PP-02", "TINTA NEGRO PP NON WOVEN"],
+  ["MP7-1024", "TINTA NEGRO SP UNIPLAST 1/4 KG"],
+  ["MP7-1026", "TINTA OPACO PARA RETOCAR POSITIVOS"],
+  ["SA-TI-PP-05", "TINTA ORO VERDOSO PP NON WOVEN"],
+  ["TIN-001-AZU", "TINTA VINIL AZUL REFLEX"],
+  ["BE-VI-TI-06-PZ", "TINTA VINIL BRILLANTE BASE TRANSPARENTE"],
+  ["TI-BE-VI-01-PZ", "TINTA VINIL BRILLANTE PLATA"],
+  ["BE-VI-TI-13-PZ", "TINTA VINIL MATE AMARILLO CROMO"],
+  ["BE-VI-TI-10-PZ", "TINTA VINIL MATE AMARILLO LIMON"],
+  ["BE-TI-VI-01-PZ", "TINTA VINIL MATE AMARILLO MEDIO"],
+  ["AZU-COV-MT-001", "TINTA VINIL MATE AZUL COBALTO"],
+  ["BE-VI-TI-07", "TINTA VINIL MATE AZUL PROCESS"],
+  ["BE-VI-TI-09-PZ", "TINTA VINIL MATE BERMELLON"],
+  ["BE-TI-VI-02-PZ", "TINTA VINIL MATE BLANCO"],
+  ["MP7-1000", "TINTA VINIL MATE BLANCO SP-700"],
+  ["BE-VI-TI-07-PZ", "TINTA VINIL MATE BUGAMBILIA"],
+  ["BE-VI-TI-08", "TINTA VINIL MATE CAFE"],
+  ["BE-VI-TI-08-PZ", "TINTA VINIL MATE MANDARINA"],
+  ["BE-VI-TI-12-PZ", "TINTA VINIL MATE NARANJA"],
+  ["BE-VI-TI-15-PZ", "TINTA VINIL MATE NARANJA FLUORESCENTE"],
+  ["BE-VI-TI-04-PZ", "TINTA VINIL MATE NEGRO"],
+  ["BE-VI-TI-05-PZ", "TINTA VINIL MATE ORO VERDOSO"],
+  ["MP7-999", "TINTA VINIL MATE PANTONE"],
+  ["BE-VI-TI-11-PZ", "TINTA VINIL MATE PLATA"],
+  ["MP7-1002", "TINTA VINIL MATE ROJO FUEGO SP-700"],
+  ["BE-VI-TI-14-PZ", "TINTA VINIL MATE ROJO SP"],
+  ["BE-VI-TI-03-PZ", "TINTA VINIL MATE VERDE BRILLANTE"],
+  ["MPV-TS-0000256", "TINTA VINIL UNIPLAST BLANCO"],
+  ["TR-MU-TR-01-PZ", "TORNILLO HEX G2 NC GALV 1/4 X 2"],
+  ["MA-TR-BL-01-PZ", "TRAPO BLANCO ESPECIAL TIPO PRENDA"],
+  ["MP8-TRI-KG", "TRIETALONAMINA"],
+  ["GE-CL-TR-TA", "TRIETANOLAMINA 85% 230 KG TAMBOR"],
+  ["OJ-PM-NI-03", "TROQUEL OJILLO K-3 × 11-Z"],
+  ["PM-RE-RE-03", "TROQUEL REMACHE UNIVERSAL"],
+  ["BE-UNI-BA-01", "UNIPLAST BARNIZ REDUCTOR"],
+  ["MP5-137", "VALVULA CHICA TRANSPARENTE"],
+  ["MP5-138", "VALVULA GRANDE TRANSPARENTE"],
+  ["PM-VA-01-PZ", "VALVULA PARA INFLABLE 25mm"],
+  ["IN-PE-MI-VA-01", "VALVULA PARA INFLABLE 30 MM"],
+  ["PQS15021 1", "VERDE VRILLANTEMSP VINIL MANTE"],
+  ["MP6-VI", "VINIL BLANCO CON ADHESIVO"],
+  ["MP6-VIM", "VINIL MAGNETICO BCO. MATE C-15"],
+  ["12171703", "VINIL MATE ORO VERDOSO"],
+  ["VI-IM-VI-02", "VIVO BEIGE"],
+  ["VI-IM-VI-01", "VIVO NEGRO"]
+]/*__FIN__*/;
+  const CATALOGO = CATALOGO_RAW.map(([clave, desc]) => ({ clave, desc }));
+  // Mapa: "CLAVE · DESC" -> {clave, desc}  (para resolver lo que el usuario escribe)
+  const CAT_MAP = new Map(CATALOGO.map(p => [`${p.clave} · ${p.desc}`, p]));
+  const CAT_BY_CLAVE = new Map(CATALOGO.map(p => [p.clave, p]));
+
+  let DATA = [];
+  let productoSel = null; // {clave, desc} actualmente resuelto en el formulario
+
+  document.getElementById('date-display').textContent = new Date().toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  // Llenar datalist de productos
+  document.getElementById('productos-list').innerHTML =
+    CATALOGO.map(p => `<option value="${p.clave} · ${p.desc.replace(/"/g,'&quot;')}">`).join('');
+
+  if (API === 'PEGA_AQUI_LA_URL_DE_TU_APPS_SCRIPT') {
+    document.getElementById('config-banner').style.display = 'block';
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function buildUrl(params) {
+    const qs = Object.entries(params).map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+    return `${API}?${qs}`;
+  }
+
+  function toggleCliente(tipo) {
+    document.getElementById('campo-cliente').style.display = tipo === 'salida' ? 'block' : 'none';
+  }
+
+  async function api(params) {
+    const res = await fetch(buildUrl(params));
+    return res.json();
+  }
+
+  // Resolver el texto del input a un producto del catálogo + mostrar existencia
+  function resolveProducto() {
+    const val = document.getElementById('f-producto').value.trim();
+    const el = document.getElementById('resolved');
+    productoSel = CAT_MAP.get(val) || CAT_BY_CLAVE.get(val) || null;
+    if (!val) { el.textContent = ''; el.className = 'resolved'; return; }
+    if (!productoSel) {
+      el.textContent = '✕ No está en el catálogo — elige uno de la lista';
+      el.className = 'resolved no';
+      return;
+    }
+    const inv = calcInventario()[productoSel.clave];
+    const stock = inv ? inv.cantidad : 0;
+    const uni = inv && inv.unidad ? ' ' + inv.unidad : '';
+    el.textContent = `✓ ${productoSel.clave} — ${productoSel.desc}  ·  Existencia actual: ${fmt(stock)}${uni}`;
+    el.className = 'resolved ok';
+    // Prerellenar unidad si ya hay movimientos previos
+    if (inv && inv.unidad && !document.getElementById('f-unidad').value.trim()) {
+      document.getElementById('f-unidad').value = inv.unidad;
+    }
+  }
+
+  async function loadData() {
+    if (API === 'PEGA_AQUI_LA_URL_DE_TU_APPS_SCRIPT') {
+      document.getElementById('tabla-body').innerHTML = `<tr><td colspan="8" class="empty">Configura la URL del Apps Script</td></tr>`;
+      render();
+      return;
+    }
+    try {
+      const json = await api({ action: 'list' });
+      DATA = json.data || [];
+      render();
+    } catch(e) {
+      toast('Error al cargar datos.');
+      document.getElementById('tabla-body').innerHTML = `<tr><td colspan="8" class="empty">Error al conectar</td></tr>`;
+    }
+  }
+
+  async function addMovimiento() {
+    if (!productoSel) { alert('Elige un producto del catálogo (por clave o descripción).'); return; }
+    const tipo = document.getElementById('f-tipo').value;
+    const cantidad = parseFloat(document.getElementById('f-cantidad').value) || 0;
+    const unidad = document.getElementById('f-unidad').value.trim();
+    const nota = document.getElementById('f-nota').value.trim();
+    const cliente = document.getElementById('f-cliente').value.trim();
+
+    if (cantidad <= 0) { alert('Ingresa una cantidad mayor a 0.'); return; }
+
+    const btn = document.getElementById('btn-add');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+
+    try {
+      await api({
+        action: 'add', id: Date.now(), fecha: new Date().toISOString(),
+        clave: productoSel.clave, descripcion: productoSel.desc,
+        tipo, cantidad, unidad, cliente, nota
+      });
+      document.getElementById('f-producto').value = '';
+      document.getElementById('f-cantidad').value = '';
+      document.getElementById('f-unidad').value = '';
+      document.getElementById('f-nota').value = '';
+      document.getElementById('f-cliente').value = '';
+      document.getElementById('resolved').textContent = '';
+      productoSel = null;
+      toast('Registrado ✓');
+      await loadData();
+    } catch(e) {
+      toast('Error al guardar.');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Registrar';
+  }
+
+  async function deleteMovimiento(id) {
+    if (!confirm('¿Eliminar este movimiento?')) return;
+    try {
+      await api({ action: 'delete', id });
+      toast('Eliminado ✓');
+      await loadData();
+    } catch(e) {
+      toast('Error al eliminar.');
+    }
+  }
+
+  function fmt(n) {
+    return Number.isInteger(n) ? String(n) : n.toFixed(2);
+  }
+
+  // Inventario por clave: { cantidad, unidad (última vista), desc }
+  function calcInventario() {
+    const inv = {};
+    DATA.forEach(d => {
+      const clave = d.clave;
+      if (!inv[clave]) inv[clave] = { cantidad: 0, unidad: '', desc: d.descripcion || '' };
+      const sign = d.tipo === 'salida' ? -1 : 1;
+      inv[clave].cantidad += sign * (parseFloat(d.cantidad) || 0);
+      if (d.unidad) inv[clave].unidad = d.unidad;
+      if (d.descripcion) inv[clave].desc = d.descripcion;
+    });
+    return inv;
+  }
+
+  function renderTable() {
+    const search = document.getElementById('search').value.toLowerCase();
+    const filtered = search
+      ? DATA.filter(d => (d.clave || '').toLowerCase().includes(search) || (d.descripcion || '').toLowerCase().includes(search))
+      : DATA;
+    const sorted = [...filtered].reverse();
+    const body = document.getElementById('tabla-body');
+    if (sorted.length === 0) {
+      body.innerHTML = `<tr><td colspan="8" class="empty">Sin movimientos</td></tr>`;
+      return;
+    }
+    body.innerHTML = sorted.map(d => {
+      const fecha = new Date(d.fecha).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'2-digit' });
+      const cantidad = parseFloat(d.cantidad) || 0;
+      return `<tr>
+        <td style="color:var(--muted)">${fecha}</td>
+        <td class="clave">${d.clave || ''}</td>
+        <td><strong>${d.descripcion || ''}</strong></td>
+        <td><span class="badge badge-${d.tipo}">${d.tipo}</span></td>
+        <td style="color:var(--muted);font-size:0.75rem">${d.tipo === 'salida' ? (d.cliente || '—') : ''}</td>
+        <td>${fmt(cantidad)}${d.unidad ? ' ' + d.unidad : ''}</td>
+        <td style="color:var(--muted);font-size:0.75rem">${d.nota || ''}</td>
+        <td><button class="del-btn" onclick="deleteMovimiento(${d.id})">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderCatalogo() {
+    const inv = calcInventario();
+    const search = document.getElementById('search-catalogo').value.toLowerCase();
+    const soloExist = document.getElementById('solo-existencia').checked;
+    const rows = CATALOGO.filter(p => {
+      if (search && !(p.clave.toLowerCase().includes(search) || p.desc.toLowerCase().includes(search))) return false;
+      if (soloExist && !(inv[p.clave] && inv[p.clave].cantidad > 0)) return false;
+      return true;
+    });
+    const body = document.getElementById('catalogo-body');
+    if (rows.length === 0) {
+      body.innerHTML = `<tr><td colspan="3" class="empty">Sin resultados</td></tr>`;
+      return;
+    }
+    body.innerHTML = rows.map(p => {
+      const i = inv[p.clave];
+      const cant = i ? i.cantidad : 0;
+      const uni = i && i.unidad ? ' ' + i.unidad : '';
+      const cls = cant > 0 ? 'stock-pos' : (cant < 0 ? 'stock-neg' : 'stock-zero');
+      return `<tr>
+        <td class="clave">${p.clave}</td>
+        <td>${p.desc}</td>
+        <td class="${cls}">${fmt(cant)}${uni}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function render() {
+    const inv = calcInventario();
+    renderTable();
+    renderCatalogo();
+    const conExistencia = Object.values(inv).filter(x => x.cantidad > 0).length;
+    document.getElementById('sum-catalogo').textContent = CATALOGO.length;
+    document.getElementById('sum-existencia').textContent = conExistencia;
+    document.getElementById('sum-movimientos').textContent = DATA.length;
+  }
+
+  function showTab(tab, btn) {
+    document.getElementById('tab-movimientos').style.display = tab === 'movimientos' ? 'block' : 'none';
+    document.getElementById('tab-catalogo').style.display = tab === 'catalogo' ? 'block' : 'none';
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  loadData();
+</script>
+</body>
+</html>
